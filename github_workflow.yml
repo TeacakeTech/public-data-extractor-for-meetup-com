@@ -1,0 +1,40 @@
+name: Build
+on:
+  # Run on any change in main branch
+  push:
+    branches:
+      - main
+  # Run regularly
+  schedule:
+    - cron:  '0 12 * * *'
+  # Give user option to run manually
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.13
+        architecture: x64
+    - name: Install Software
+      run: "pip install public-data-extractor-for-meetup-com"
+    - name: Run
+      run: "python -m publicdataextractorformeetupcom extractgroup ${{ vars.MEETUP_COM_GROUP_URL_NAME }} output"
+      env:
+         MEETUP_COM_AUTHORIZED_MEMBER_ID: ${{ secrets.MEETUP_COM_AUTHORIZED_MEMBER_ID }}
+         MEETUP_COM_YOUR_CLIENT_KEY: ${{ secrets.MEETUP_COM_YOUR_CLIENT_KEY }}
+         MEETUP_COM_PRIVATE_SIGNING_KEY: ${{ secrets.MEETUP_COM_PRIVATE_SIGNING_KEY }}
+    - name: Upload Artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: "./output"
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
