@@ -1,0 +1,17 @@
+name: Lint
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup python
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.13
+        architecture: x64
+    - run: pip install -e .[dev]
+    - run: black --check publicdataextractorformeetupcom
+    - run: isort --check publicdataextractorformeetupcom
+    - run: flake8 publicdataextractorformeetupcom
