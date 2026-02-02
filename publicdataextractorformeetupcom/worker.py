@@ -1,10 +1,17 @@
 import json
-import os
 import time
 
 import jwt
 import requests
+import staticpipes.collection
+import staticpipes.config
+import staticpipes.pipe_base
+import staticpipes.pipes.copy
+import staticpipes.pipes.jinja2
+import staticpipes.worker
 from cryptography.hazmat.primitives import serialization
+
+import publicdataextractorformeetupcom.site
 
 
 class Worker:
@@ -62,10 +69,11 @@ class Worker:
         response.raise_for_status()
         return response.json()
 
-    def extract_group(self, group_url_name, out_directory):
+    def _get_group_data(self, group_url_name):
+
         self._get_meetup_com_access_token()
 
-        data = self._make_meetup_com_graphql_query(
+        return self._make_meetup_com_graphql_query(
             """
             query GetUpcomingEvents($groupURLName: String!) {
                 groupByUrlname(urlname: $groupURLName) {
@@ -101,8 +109,55 @@ class Worker:
             {"groupURLName": group_url_name},
         )
 
-        if not os.path.exists(out_directory):
-            os.makedirs(out_directory)
+    def _write_group_data(self, group_data, out_directory):
 
-        with open(os.path.join(out_directory, "out.json"), "w") as fp:
-            json.dump(data, fp, indent=4)
+        events_collection = staticpipes.collection.Collection()
+        [
+            events_collection.add_record(
+                staticpipes.collection.CollectionRecord(d["node"]["id"], d["node"])
+            )
+            for d in group_data["data"]["groupByUrlname"]["events"]["edges"]
+        ]
+
+        config = staticpipes.config.Config(
+            pipes=[
+                PipeWriteRawData(group_data),
+                staticpipes.pipes.jinja2.PipeJinja2(),
+                staticpipes.pipes.copy.PipeCopy(extensions=["css"]),
+            ],
+            context={
+                "group_id": group_data["data"]["groupByUrlname"]["id"],
+                "group_urlname": group_data["data"]["groupByUrlname"]["urlname"],
+                "group_name": group_data["data"]["groupByUrlname"]["name"],
+                "group_description": group_data["data"]["groupByUrlname"][
+                    "description"
+                ],
+                "collections": {"events": events_collection},
+            },
+        )
+
+        worker = staticpipes.worker.Worker(
+            config, publicdataextractorformeetupcom.site.DIRECTORY, out_directory
+        )
+        worker.build()
+
+    def extract_group(self, group_url_name, out_directory):
+        group_data = self._get_group_data(group_url_name)
+
+        # Useful for testing
+        # with open("out.json") as f:
+        #    group_data = json.load(f)
+
+        self._write_group_data(group_data, out_directory)
+
+
+class PipeWriteRawData(staticpipes.pipe_base.BasePipe):
+
+    def __init__(self, raw_data):
+        super().__init__()
+        self._raw_data = raw_data
+
+    def start_build(self, current_info) -> None:
+        self.build_directory.write(
+            "/", "raw_data.json", json.dumps(self._raw_data, indent=4)
+        )

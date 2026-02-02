@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{{ group_name }} from Meetup.com</title>
+        <meta name="robots" content="noindex, nofollow">
+        <link href="main.css" rel="stylesheet"/>
+    </head>
+    <body>
+        <div id="page">
+            <h1>{{ group_name }}</h1>
+
+            <p class="description">{{ group_description }}</p>
+
+            <table>
+                <tr><th>Id</th><td>{{ group_id }}</td></tr>
+            </table>
+
+            <p><a href="raw_data.json">Get raw data</a></p>
+
+            <p><a href="https://www.meetup.com/{{ group_urlname }}">More on Meetup.com</a></p>
+
+            <h2>Events</h2>
+
+            {% for event in collections.events.get_records() %}
+
+                <h3>{{ event.get_data().dateTime }}: {{ event.get_data().title }}</h3>
+
+                <p class="description">{{ event.get_data().description }}</p>
+
+                <table>
+                    <tr><th>Id</th><td>{{ event.get_id() }}</td></tr>
+                    <tr><th>Start</th><td>{{ event.get_data().dateTime }}</td></tr>
+                    <tr><th>Duration</th><td>{{ event.get_data().duration }}</td></tr>
+                    <tr><th>Type</th><td>{{ event.get_data().eventType }}</td></tr>
+                    <tr><th>Status</th><td>{{ event.get_data().status }}</td></tr>
+                </table>
+
+                <table>
+                    <tr>
+                        <th>Name</th>
+                        <th>Address</th>
+                        <th>Postal Code</th>
+                        <th>Country</th>
+                        <th>Lat / Lon</th>
+                    </tr>
+                    {% for venue in event.get_data().venues %}
+                        <tr>
+                            <td>{{ venue.name }}</td>
+                            <td>{{ venue.address }}</td>
+                            <td>{{ venue.postalCode }}</td>
+                            <td>{{ venue.country }}</td>
+                            <td>{{ venue.lat }} / {{ venue.lon }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="5">No venues.</td></tr>
+                    {% endfor %}
+                </table>
+
+                <p><a href="https://www.meetup.com/{{ group_urlname }}/events/{{ event.get_id() }}">More on Meetup.com</a></p>
+
+            {% endfor %}
+
+        </div>
+    </body>
+</html>
