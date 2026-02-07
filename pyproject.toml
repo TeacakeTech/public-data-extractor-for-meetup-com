@@ -5,7 +5,7 @@ requires = ["setuptools"]
 name = "public-data-extractor-for-meetup-com"
 description = "Public Data Extractor for meetup.com"
 readme = "README.md"
-version = "0.2.0"
+version = "0.2.1"
 requires-python = ">=3.10"
 dependencies = [
     "requests", "PyJWT", "cryptography", "staticpipes>=0.6,<2", "jinja2"
